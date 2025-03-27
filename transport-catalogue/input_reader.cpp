@@ -9,7 +9,7 @@
 namespace transport {
 
     namespace utils {
-
+        
         /**
          * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
          */
@@ -32,8 +32,8 @@ namespace transport {
         }
 
 
-        std::vector<std::pair<int, std::string>> ParseDistances(const std::string& input) {
-            std::vector<std::pair<int, std::string>> result;
+        std::vector<DistanceToStop> ParseDistances(const std::string& input) {
+            std::vector<DistanceToStop> result;
             std::regex pattern(R"((\d+)m to ([^,]+))");
             std::sregex_iterator it(input.begin(), input.end(), pattern);
             std::sregex_iterator end;
@@ -42,7 +42,10 @@ namespace transport {
                 std::smatch match = *it;
                 int distance = std::stoi(match[1].str());
                 std::string name = match[2].str();
-                result.emplace_back(distance, name);
+                DistanceToStop elem;
+                elem.stop = name;
+                elem.distance = distance;
+                result.emplace_back(elem);
             }
 
             return result;
@@ -134,8 +137,12 @@ namespace transport {
                 if (command.command == "Stop") {
                     Coordinates coords = utils::ParseCoordinates(command.description);
                     catalogue.AddStop(command.id, coords.lat, coords.lng);
-                    std::vector<std::pair<int, std::string>>  distance_betwen_stops = utils::ParseDistances(command.description);
-                    catalogue.AddDistance(command.id, distance_betwen_stops);
+                    std::vector<DistanceToStop>  distance_betwen_stops = utils::ParseDistances(command.description);
+
+                    for (auto& elem : distance_betwen_stops) {
+                        catalogue.AddDistance(command.id, elem.stop, elem.distance);
+                    }
+                    
                 }
             }
             // Второй проход - добавляем расстояния между остановками

@@ -20,7 +20,7 @@ namespace transport {
                 const auto* bus = transport_catalogue.GetBus(bus_name);
                 if (bus) {
                     output << "Bus " << bus->name << ": " << bus->stops.size() << " stops on route, "
-                        << bus->count_unic_stops << " unique stops, " << bus->geo_route << " route length, " <<bus->geo_route/bus->len_route << " curvature" << std::endl;
+                        << bus->count_unique_stops << " unique stops, " << bus->geo_route << " route length, " <<bus->geo_route/bus->len_route << " curvature" << std::endl;
                 }
                 else {
                     output << "Bus " << bus_name << ": not found" << std::endl;

@@ -15,7 +15,10 @@
 #include "geo.h"
 
 namespace transport {
-
+    struct DistanceToStop {
+        std::string stop;
+        int distance;
+    };
     namespace catalogue {
 
         class TransportCatalogue {
@@ -26,10 +29,12 @@ namespace transport {
                 Coordinates position;
             };
 
+            
+
             struct Bus {
                 std::string name;
                 std::deque<std::string> stops;  // Все остановки маршрута
-                int count_unic_stops = 0;
+                int count_unique_stops = 0;
                 double len_route = 0;
                 double geo_route = 0;
                 bool is_ring = false;  // Флаг кольцевого маршрута
@@ -47,7 +52,7 @@ namespace transport {
             const Stop* GetStop(const std::string_view& stop) const;
 
             //Добавление длин маршрутов
-            void AddDistance(const std::string& name, const std::vector<std::pair<int, std::string>>& routes);
+            void AddDistance(const std::string& name1, const std::string& name2, const int dist);
 
         private:
             struct StringPairHash {

@@ -22,14 +22,14 @@ namespace transport {
         }
 
         void TransportCatalogue::AddBus(const std::string& name, std::vector<std::string_view> stops, bool is_ring) {
-            int count_uniq_stops = CounterUniqStops(stops);
+            int count_unique_stops = CounterUniqStops(stops);
             double len_route = ComputeLengthRoute(stops, is_ring);  // Вычисляем длину маршрута
             double geo_route = ComputeGeoRoute(stops,is_ring);
             std::deque<std::string> stop_copy;
             for (auto& stop : stops) {
                 stop_copy.emplace_back(stop);
             }
-            buses_.emplace(name, Bus{ name, stop_copy, count_uniq_stops, len_route,geo_route, is_ring });
+            buses_.emplace(name, Bus{ name, stop_copy, count_unique_stops, len_route,geo_route, is_ring });
 
             for (auto& stop : stop_copy) {
                 if (stops_.count(stop)) {
@@ -39,10 +39,10 @@ namespace transport {
         }
 
         
-        void TransportCatalogue::AddDistance(const std::string& name, const std::vector<std::pair<int, std::string>>& routes){
-            for (auto route : routes) {
-                distances_.emplace(std::make_pair(name, route.second), route.first);
-            }
+        void TransportCatalogue::AddDistance(const std::string& name1, const std::string& name2, const int dist){
+            
+            distances_.emplace(std::make_pair(name1, name2), dist);
+           
         }
 
 

@@ -7,11 +7,11 @@
 
 namespace transport {
 
-namespace stat {
+    namespace stat {
 
-void ParseAndPrintStat(const catalogue::TransportCatalogue& transport_catalogue, std::string_view request,
-                       std::ostream& output);
+        void ParseAndPrintStat(const catalogue::TransportCatalogue& transport_catalogue, std::string_view request,
+            std::ostream& output);
 
-}  // namespace stat
+    }  // namespace stat
 
 }  // namespace transport

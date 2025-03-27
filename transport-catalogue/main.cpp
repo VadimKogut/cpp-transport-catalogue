@@ -1,4 +1,4 @@
-// место для вашего кода#include <iostream>
+#include <iostream>
 #include <string>
 
 #include "input_reader.h"
@@ -28,7 +28,7 @@ int main() {
     for (int i = 0; i < stat_request_count; ++i) {
         string line;
         getline(cin, line);
-        stat::ParseAndPrintStat(catalogue, line, cout);
+        transport::stat::ParseAndPrintStat(catalogue, line, cout);
     }
 
     return 0;

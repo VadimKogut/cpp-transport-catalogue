@@ -1,83 +1,46 @@
 #pragma once
-#ifndef TRANSPORT_CATALOGUE_H
-#define TRANSPORT_CATALOGUE_H
-
-#include <deque>
-#include <functional> 
-#include <set>
-#include <string>
-#include <string_view>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
-
 
 #include "geo.h"
+#include "domain.h"
+
+#include <iostream>
+#include <deque>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <stdexcept>
+#include <optional>
+#include <unordered_set>
+#include <set>
+#include <map>
 
 namespace transport {
-    struct DistanceToStop {
-        std::string stop;
-        int distance;
+
+class Catalogue {
+public:
+    struct StopDistancesHasher {
+        size_t operator()(const std::pair<const Stop*, const Stop*>& points) const {
+            size_t hash_first = std::hash<const void*>{}(points.first);
+            size_t hash_second = std::hash<const void*>{}(points.second);
+            return hash_first + hash_second * 37;
+        }
     };
-    namespace catalogue {
 
-        class TransportCatalogue {
-        public:
-            struct Stop {
-                std::string name;
-                std::set<std::string> buses;  // Маршруты, проходящие через остановку
-                Coordinates position;
-            };
+    void AddStop(std::string_view stop_name, const geo::Coordinates coordinates);
+    void AddRoute(std::string_view bus_number, const std::vector<const Stop*> stops, bool is_circle);
+    const Bus* FindRoute(std::string_view bus_number) const;
+    const Stop* FindStop(std::string_view stop_name) const;
+    size_t UniqueStopsCount(std::string_view bus_number) const;
+    void SetDistance(const Stop* from, const Stop* to, const int distance);
+    int GetDistance(const Stop* from, const Stop* to) const;
+    const std::map<std::string_view, const Bus*> GetSortedAllBuses() const;
 
-            
+private:
+    std::deque<Bus> all_buses_;
+    std::deque<Stop> all_stops_;
+    std::unordered_map<std::string_view, const Bus*> busname_to_bus_;
+    std::unordered_map<std::string_view, const Stop*> stopname_to_stop_;
+    std::unordered_map<std::pair<const Stop*, const Stop*>, int, StopDistancesHasher> stop_distances_;
+};
 
-            struct Bus {
-                std::string name;
-                std::deque<std::string> stops;  // Все остановки маршрута
-                int count_unique_stops = 0;
-                double len_route = 0;
-                double geo_route = 0;
-                bool is_ring = false;  // Флаг кольцевого маршрута
-            };
-            // Добавление остановки
-            void AddStop(const std::string& name, double& latitude, double& longitude);
-
-            // Добавление маршрута
-            void AddBus(const std::string& name, std::vector<std::string_view> stops, bool is_ring);
-
-            // Поиск маршрута
-            const Bus* GetBus(const std::string_view& bus_name) const;
-
-            // Поиск пересадок
-            const Stop* GetStop(const std::string_view& stop) const;
-
-            //Добавление длин маршрутов
-            void AddDistance(const std::string& name1, const std::string& name2, const int dist);
-
-        private:
-            struct StringPairHash {
-                size_t operator()(const std::pair<std::string, std::string>& p) const {
-                    return std::hash<std::string>{}(p.first) ^ std::hash<std::string>{}(p.second);
-                }
-            };
-            // Получение расстояния между остановками
-            double ComputeDistanceStops(const Stop& stop1, const Stop& stop2) const;
-            //Получения полного пути
-            double ComputeGeoRoute(const std::vector<std::string_view>& stops, bool is_ring) const;
-            // Считаем количество уникальных остановок
-            int CounterUniqStops(const std::vector<std::string_view>& stops);
-
-            // Считаем общую длину пути
-            double ComputeLengthRoute(const std::vector<std::string_view>& stops, bool is_ring) const;
-
-            std::unordered_map<std::string, Stop> stops_;  // Ключ: название остановки
-            std::unordered_map<std::string, Bus> buses_;   // Ключ: название маршрута
-        
-            std::unordered_map<std::pair<std::string, std::string>,int, StringPairHash> distances_;
-        };
-
-    }  // namespace catalogue
-
-}  // namespace transport
-
-#endif // TRANSPORT_CATALOGUE_H
+} // namespace transport

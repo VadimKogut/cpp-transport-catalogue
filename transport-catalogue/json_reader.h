@@ -7,6 +7,21 @@
 
 #include <iostream>
 #include <sstream>
+
+namespace json_reader {
+
+struct StopData {
+    std::string_view name;
+    geo::Coordinates coordinates;
+    std::map<std::string_view, int> distances;
+};
+
+struct RouteData {
+    std::string_view name;
+    std::vector<const transport::Stop*> stops;
+    bool is_circular;
+};
+
 class JsonReader {
 public:
     JsonReader(std::istream& input)
@@ -26,9 +41,9 @@ private:
     json::Document input_;
     json::Node dummy_ = nullptr;
 
-    std::tuple<std::string_view, geo::Coordinates, std::map<std::string_view, int>> FillStop(const json::Dict& request_map) const;
+    StopData FillStop(const json::Dict& request_map) const;
     void FillStopDistances(transport::Catalogue& catalogue) const;
-    std::tuple<std::string_view, std::vector<const transport::Stop*>, bool> FillRoute(const json::Dict& request_map, transport::Catalogue& catalogue) const;
+    RouteData FillRoute(const json::Dict& request_map, transport::Catalogue& catalogue) const;
 
     std::optional<transport::BusStat> GetBusStat(const transport::Catalogue& catalogue, const std::string_view bus_number) const;
     const std::set<std::string> GetBusesByStop(const transport::Catalogue& catalogue, std::string_view stop_name) const;
@@ -40,3 +55,5 @@ private:
     const json::Node PrintStop(const json::Dict& request_map, transport::Catalogue& catalogue) const;
     const json::Node PrintMap(const json::Dict& request_map, const transport::Catalogue& catalogue, const renderer::MapRenderer& renderer) const;
 };
+
+} // namespace json_reader

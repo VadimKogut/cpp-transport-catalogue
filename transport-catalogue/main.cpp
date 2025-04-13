@@ -2,7 +2,7 @@
 
 int main() {
     transport::Catalogue catalogue;
-    JsonReader json_doc(std::cin);
+    json_reader::JsonReader json_doc(std::cin);
     
     // Fill the transport catalogue with data from input
     json_doc.FillCatalogue(catalogue);

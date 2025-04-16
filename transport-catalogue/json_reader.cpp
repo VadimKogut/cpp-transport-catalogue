@@ -1,4 +1,5 @@
 #include "json_reader.h"
+#include "json_builder.h"
 
 using namespace std::literals;
 
@@ -172,53 +173,62 @@ svg::Document JsonReader::RenderMap(const transport::Catalogue& catalogue,
 
 const json::Node JsonReader::PrintRoute(const json::Dict& request_map,
                                       transport::Catalogue& catalogue) const {
-    json::Dict result;
+    json::Builder builder;
+    builder.StartDict();
+    
     const std::string& route_number = request_map.at("name").AsString();
-    result["request_id"] = request_map.at("id").AsInt();
+    builder.Key("request_id").Value(request_map.at("id").AsInt());
 
     if (!IsBusNumber(catalogue, route_number)) {
-        result["error_message"] = json::Node("not found"); // Удалено использование "s"
+        builder.Key("error_message").Value("not found"s);
     } else {
         const auto bus_stat = GetBusStat(catalogue, route_number);
-        result["curvature"] = bus_stat->curvature;
-        result["route_length"] = bus_stat->route_length;
-        result["stop_count"] = static_cast<int>(bus_stat->stops_count);
-        result["unique_stop_count"] = static_cast<int>(bus_stat->unique_stops_count);
+        builder.Key("curvature").Value(bus_stat->curvature);
+        builder.Key("route_length").Value(bus_stat->route_length);
+        builder.Key("stop_count").Value(static_cast<int>(bus_stat->stops_count));
+        builder.Key("unique_stop_count").Value(static_cast<int>(bus_stat->unique_stops_count));
     }
 
-    return json::Node(result);
+    builder.EndDict();
+    return builder.Build();
 }
 
 const json::Node JsonReader::PrintStop(const json::Dict& request_map,
                                      transport::Catalogue& catalogue) const {
-    json::Dict result;
+    json::Builder builder;
+    builder.StartDict();
+    
     const std::string& stop_name = request_map.at("name").AsString();
-    result["request_id"] = request_map.at("id").AsInt();
+    builder.Key("request_id").Value(request_map.at("id").AsInt());
 
     if (!IsStopName(catalogue, stop_name)) {
-        result["error_message"] = json::Node{"not found"s};
+        builder.Key("error_message").Value("not found"s);
     } else {
         json::Array buses;
         const auto buses_set = GetBusesByStop(catalogue, stop_name);
         buses.reserve(buses_set.size());
         buses.insert(buses.end(), buses_set.begin(), buses_set.end());
-        result["buses"] = std::move(buses);
+        builder.Key("buses").Value(std::move(buses));
     }
 
-    return json::Node{result};
+    builder.EndDict();
+    return builder.Build();
 }
 
 const json::Node JsonReader::PrintMap(const json::Dict& request_map,
                                     const transport::Catalogue& catalogue,
                                     const renderer::MapRenderer& renderer) const {
-    json::Dict result;
-    result["request_id"] = request_map.at("id").AsInt();
+    json::Builder builder;
+    builder.StartDict();
+    
+    builder.Key("request_id").Value(request_map.at("id").AsInt());
     
     std::ostringstream strm;
     RenderMap(catalogue, renderer).Render(strm);
-    result["map"] = strm.str();
+    builder.Key("map").Value(strm.str());
 
-    return json::Node{result};
+    builder.EndDict();
+    return builder.Build();
 }
 
 renderer::MapRenderer JsonReader::FillRenderSettings(const json::Dict& request_map) const {

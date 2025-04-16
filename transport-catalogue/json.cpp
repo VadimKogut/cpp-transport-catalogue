@@ -126,10 +126,10 @@ Node LoadBool(istream& input) {
     const auto& str = value ? true_str : false_str;
     
     char buf[4];
-    const size_t len = value ? 3 : 4; // "rue" or "alse"
+    const auto len = value ? 3 : 4; // "rue" or "alse"
     input.read(buf, len);
     
-    if (input.gcount() != len || memcmp(buf, str.data() + 1, len)) {
+    if (input.gcount() != static_cast<std::streamsize>(len) || memcmp(buf, str.data() + 1, len)) {
         throw ParsingError("Bool parsing error");
     }
     
@@ -274,6 +274,9 @@ const Dict& Node::AsMap() const {
     return std::get<Dict>(value_);
 }
 
+Node::Value& Node::GetValue() {
+    return value_;
+}
 const Node::Value& Node::GetValue() const {
     return value_;
 }

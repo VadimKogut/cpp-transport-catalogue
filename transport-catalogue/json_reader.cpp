@@ -20,9 +20,15 @@ const json::Node& JsonReader::GetRenderSettings() const {
     return input_.GetRoot().AsMap().at("render_settings");
 }
 
+const json::Node& JsonReader::GetRoutingSettings() const {
+    if (!input_.GetRoot().AsMap().count("routing_settings")) return dummy_;
+    return input_.GetRoot().AsMap().at("routing_settings");
+}
+
 void JsonReader::ProcessRequests(const json::Node& stat_requests, 
                                transport::Catalogue& catalogue,
-                               const renderer::MapRenderer& renderer) const {
+                               const renderer::MapRenderer& renderer,
+                               transport::Router& router) const {
     json::Array result;
     result.reserve(stat_requests.AsArray().size());
 
@@ -36,6 +42,8 @@ void JsonReader::ProcessRequests(const json::Node& stat_requests,
             result.push_back(PrintRoute(request_map, catalogue).AsMap());
         } else if (type == "Map") {
             result.push_back(PrintMap(request_map, catalogue, renderer).AsMap());
+        } else if (type == "Route") {
+            result.push_back(PrintRouting(request_map, catalogue, router).AsMap());
         }
     }
 
@@ -111,6 +119,13 @@ void JsonReader::FillCatalogue(transport::Catalogue& catalogue) {
         const auto route_data = FillRoute(request_map, catalogue);
         catalogue.AddRoute(route_data.name, route_data.stops, route_data.is_circular);
     }
+}
+
+transport::Router JsonReader::FillRoutingSettings() const {
+    const auto& settings_map = GetRoutingSettings().AsMap();
+    int bus_wait_time = settings_map.at("bus_wait_time").AsInt();
+    double bus_velocity = settings_map.at("bus_velocity").AsDouble();
+    return transport::Router(bus_wait_time, bus_velocity);
 }
 
 std::optional<transport::BusStat> JsonReader::GetBusStat(
@@ -230,6 +245,66 @@ const json::Node JsonReader::PrintMap(const json::Dict& request_map,
     builder.EndDict();
     return builder.Build();
 }
+
+const json::Node JsonReader::PrintRouting(const json::Dict& request_map,
+                                        transport::Catalogue& catalogue,
+                                        transport::Router& router) const {
+    json::Builder builder;
+    builder.StartDict();
+    
+    const std::string& from = request_map.at("from").AsString();
+    const std::string& to = request_map.at("to").AsString();
+    const int request_id = request_map.at("id").AsInt();
+    builder.Key("request_id").Value(request_id);
+
+    const auto* from_stop = catalogue.FindStop(from);
+    const auto* to_stop = catalogue.FindStop(to);
+
+    if (!from_stop) {
+        builder.Key("error_message").Value("not found"s);
+    } else if (!to_stop) {
+        builder.Key("error_message").Value("not found"s);
+    } else {
+        auto route_info = router.FindRoute(from, to);
+        if (!route_info) {
+            builder.Key("error_message").Value("not found"s);
+        } else {
+            // Round to 6 decimal places to avoid floating point precision issues
+            auto round_time = [](double time) {
+                return std::round(time * 1e6) / 1e6;
+            };
+
+            builder.Key("total_time").Value(round_time(route_info->weight));
+            builder.Key("items").StartArray();
+            
+            for (const auto& edge_id : route_info->edges) {
+                const auto& edge_info = router.GetEdgeInfo().at(edge_id);
+                
+                if (edge_info.bus_name.empty()) {
+                    // Wait activity
+                    builder.StartDict()
+                        .Key("type").Value("Wait")
+                        .Key("stop_name").Value(edge_info.stop_name)
+                        .Key("time").Value(round_time(edge_info.time))
+                        .EndDict();
+                } else {
+                    // Bus activity
+                    builder.StartDict()
+                        .Key("type").Value("Bus")
+                        .Key("bus").Value(edge_info.bus_name)
+                        .Key("span_count").Value(edge_info.span_count)
+                        .Key("time").Value(round_time(edge_info.time))
+                        .EndDict();
+                }
+            }
+            builder.EndArray();
+        }
+    }
+
+    builder.EndDict();
+    return builder.Build();
+}
+
 
 renderer::MapRenderer JsonReader::FillRenderSettings(const json::Dict& request_map) const {
     renderer::RenderSettings settings;

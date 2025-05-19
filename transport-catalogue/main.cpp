@@ -1,19 +1,25 @@
 #include "json_reader.h"
+#include "transport_catalogue.h"
+#include "map_renderer.h"
+#include "transport_router.h"
 
 int main() {
     transport::Catalogue catalogue;
     json_reader::JsonReader json_doc(std::cin);
     
-    // Fill the transport catalogue with data from input
+    // 1. Fill the transport catalogue
     json_doc.FillCatalogue(catalogue);
     
-    // Get render settings and create renderer
-    const auto& render_settings = json_doc.GetRenderSettings().AsMap();
-    const auto renderer = json_doc.FillRenderSettings(render_settings);
+    // 2. Configure renderer
+    const auto renderer = json_doc.FillRenderSettings(json_doc.GetRenderSettings().AsMap());
     
-    // Process stat requests and output results
+    // 3. Configure router
+    transport::Router router = json_doc.FillRoutingSettings();
+    router.BuildGraph(catalogue);
+    
+    // 4. Process requests
     const auto& stat_requests = json_doc.GetStatRequests();
-    json_doc.ProcessRequests(stat_requests, catalogue, renderer);
+    json_doc.ProcessRequests(stat_requests, catalogue, renderer, router);
     
     return 0;
 }

@@ -14,8 +14,8 @@ int main() {
     const auto renderer = json_doc.FillRenderSettings(json_doc.GetRenderSettings().AsMap());
     
     // 3. Configure router
-    transport::Router router = json_doc.FillRoutingSettings();
-    router.BuildGraph(catalogue);
+    transport::Router router = json_doc.FillRoutingSettings(catalogue);
+   
     
     // 4. Process requests
     const auto& stat_requests = json_doc.GetStatRequests();

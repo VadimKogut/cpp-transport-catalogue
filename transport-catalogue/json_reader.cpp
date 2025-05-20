@@ -121,11 +121,11 @@ void JsonReader::FillCatalogue(transport::Catalogue& catalogue) {
     }
 }
 
-transport::Router JsonReader::FillRoutingSettings() const {
+transport::Router JsonReader::FillRoutingSettings(const transport::Catalogue& catalogue) const {
     const auto& settings_map = GetRoutingSettings().AsMap();
     int bus_wait_time = settings_map.at("bus_wait_time").AsInt();
     double bus_velocity = settings_map.at("bus_velocity").AsDouble();
-    return transport::Router(bus_wait_time, bus_velocity);
+    return transport::Router(catalogue, bus_wait_time, bus_velocity);
 }
 
 std::optional<transport::BusStat> JsonReader::GetBusStat(
@@ -260,9 +260,7 @@ const json::Node JsonReader::PrintRouting(const json::Dict& request_map,
     const auto* from_stop = catalogue.FindStop(from);
     const auto* to_stop = catalogue.FindStop(to);
 
-    if (!from_stop) {
-        builder.Key("error_message").Value("not found"s);
-    } else if (!to_stop) {
+    if (!from_stop || !to_stop) {
         builder.Key("error_message").Value("not found"s);
     } else {
         auto route_info = router.FindRoute(from, to);
@@ -274,26 +272,24 @@ const json::Node JsonReader::PrintRouting(const json::Dict& request_map,
                 return std::round(time * 1e6) / 1e6;
             };
 
-            builder.Key("total_time").Value(round_time(route_info->weight));
+            builder.Key("total_time").Value(round_time(route_info->total_time));
             builder.Key("items").StartArray();
             
-            for (const auto& edge_id : route_info->edges) {
-                const auto& edge_info = router.GetEdgeInfo().at(edge_id);
-                
-                if (edge_info.bus_name.empty()) {
+            for (const auto& edge : route_info->edges) {
+                if (edge.bus_name.empty()) {
                     // Wait activity
                     builder.StartDict()
                         .Key("type").Value("Wait")
-                        .Key("stop_name").Value(edge_info.stop_name)
-                        .Key("time").Value(round_time(edge_info.time))
+                        .Key("stop_name").Value(edge.stop_name)
+                        .Key("time").Value(round_time(edge.time))
                         .EndDict();
                 } else {
                     // Bus activity
                     builder.StartDict()
                         .Key("type").Value("Bus")
-                        .Key("bus").Value(edge_info.bus_name)
-                        .Key("span_count").Value(edge_info.span_count)
-                        .Key("time").Value(round_time(edge_info.time))
+                        .Key("bus").Value(edge.bus_name)
+                        .Key("span_count").Value(edge.span_count)
+                        .Key("time").Value(round_time(edge.time))
                         .EndDict();
                 }
             }
@@ -304,7 +300,6 @@ const json::Node JsonReader::PrintRouting(const json::Dict& request_map,
     builder.EndDict();
     return builder.Build();
 }
-
 
 renderer::MapRenderer JsonReader::FillRenderSettings(const json::Dict& request_map) const {
     renderer::RenderSettings settings;

@@ -41,7 +41,7 @@ public:
 
     void FillCatalogue(transport::Catalogue& catalogue);
     renderer::MapRenderer FillRenderSettings(const json::Dict& request_map) const;
-    transport::Router FillRoutingSettings() const;  // Add this method
+    transport::Router FillRoutingSettings(const transport::Catalogue& catalogue) const;
 
 private:
     json::Document input_;
